@@ -1,0 +1,28 @@
+{
+    "name": "toropyga/jwt",
+    "description": "Libraries for working with JWT from Toropyga",
+    "authors": [
+        {
+            "name": "Yuri Frantsevich",
+            "email": "frantsevich@gmail.com",
+            "homepage": "https://github.com/Toropyga/JWT",
+            "role": "Developer"
+        }
+    ],
+    "license": "MIT",
+    "require": {
+        "php": ">=5.1.0",
+        "toropyga/base": "*",
+        "ext-json": "*",
+        "ext-mbstring": "*"
+    },
+    "require-dev": {
+
+    },
+    "minimum-stability": "dev",
+    "autoload": {
+        "psr-4": {
+            "FYN\\": "src/"
+        }
+    }
+}
