@@ -3,7 +3,7 @@
  * Класс для работы с ключами JWT
  * @author Yuri Frantsevich (FYN)
  * Date: 13/08/2021
- * @version 1.0.0
+ * @version 1.0.1
  * @copyright 2021
  */
 
@@ -80,7 +80,6 @@ class JWT {
      */
     public function __construct() {
         if (!defined("SERVER_NAME")) define("SERVER_NAME", $_SERVER['SERVER_NAME']);
-        $this->BASE = new FYN\Base();
     }
 
     /**
@@ -183,7 +182,7 @@ class JWT {
             if ($this->debug) $this->logs[] = "JWT is array: ".print_r($jwt, true);
             $error['info'] = 'JWT is array';
             $error['case'] = 'first check';
-            $error = $this->BASE->ArrayToObj($error);
+            $error = Base::ArrayToObj($error);
             return $error;
         }
         if ($this->debug) $this->logs[] = "Decode JWT: START";
@@ -202,7 +201,7 @@ class JWT {
                 if ($this->debug) $this->logs[] = "Decode JWT: STOP";
                 $error['info'] = $e->getMessage();
                 $error['case'] = 'segments';
-                $error = $this->BASE->ArrayToObj($error);
+                $error = Base::ArrayToObj($error);
                 return $error;
             }
         }
@@ -217,7 +216,7 @@ class JWT {
                 if ($this->debug) $this->logs[] = "Decode JWT: STOP";
                 $error['info'] = $e->getMessage();
                 $error['case'] = 'header';
-                $error = $this->BASE->ArrayToObj($error);
+                $error = Base::ArrayToObj($error);
                 return $error;
             }
         }
@@ -232,7 +231,7 @@ class JWT {
                 if ($this->debug) $this->logs[] = "Decode JWT: STOP";
                 $error['info'] = $e->getMessage();
                 $error['case'] = 'payload';
-                $error = $this->BASE->ArrayToObj($error);
+                $error = Base::ArrayToObj($error);
                 return $error;
             }
         }
@@ -247,7 +246,7 @@ class JWT {
                 if ($this->debug) $this->logs[] = "Decode JWT: STOP";
                 $error['info'] = $e->getMessage();
                 $error['case'] = 'signature';
-                $error = $this->BASE->ArrayToObj($error);
+                $error = Base::ArrayToObj($error);
                 return $error;
             }
         }
@@ -262,7 +261,7 @@ class JWT {
                 if ($this->debug) $this->logs[] = "Decode JWT: STOP";
                 $error['info'] = $e->getMessage();
                 $error['case'] = 'alg';
-                $error = $this->BASE->ArrayToObj($error);
+                $error = Base::ArrayToObj($error);
                 return $error;
             }
         }
@@ -276,7 +275,7 @@ class JWT {
                 if ($this->debug) $this->logs[] = "Decode JWT: STOP";
                 $error['info'] = $e->getMessage();
                 $error['case'] = 'signature check';
-                $error = $this->BASE->ArrayToObj($error);
+                $error = Base::ArrayToObj($error);
                 return $error;
             }
         }
@@ -294,7 +293,7 @@ class JWT {
                 if ($this->debug) $this->logs[] = "Decode JWT: STOP";
                 $error['info'] = $e->getMessage();
                 $error['case'] = 'nbf';
-                $error = $this->BASE->ArrayToObj($error);
+                $error = Base::ArrayToObj($error);
                 return $error;
             }
         }
@@ -312,7 +311,7 @@ class JWT {
                 if ($this->debug) $this->logs[] = "Decode JWT: STOP";
                 $error['info'] = $e->getMessage();
                 $error['case'] = 'iat';
-                $error = $this->BASE->ArrayToObj($error);
+                $error = Base::ArrayToObj($error);
                 return $error;
             }
         }
@@ -328,7 +327,7 @@ class JWT {
                 if ($this->debug) $this->logs[] = "Decode JWT: STOP";
                 $error['info'] = $e->getMessage();
                 $error['case'] = 'exp';
-                $error = $this->BASE->ArrayToObj($error);
+                $error = Base::ArrayToObj($error);
                 return $error;
             }
         }
@@ -353,7 +352,7 @@ class JWT {
             $header = static::jsonDecode(static::base64Decode($head_64));
             $payload = static::jsonDecode(static::base64Decode($body_64));
             if ($header->alg) $result['header'] = (array) $header;
-            $result['payload'] = $this->BASE->ObjToArray($payload);
+            $result['payload'] = Base::ObjToArray($payload);
         }
         if ($this->debug) $this->logs[] = "JWT Data: ".preg_replace("/\n/", '', print_r($result, true));
         if ($this->debug) $this->logs[] = "Get JWT Data: STOP";
@@ -494,7 +493,7 @@ class JWT {
         $jwt = static::createJWT($header, $data, $key);
         $domain = (SERVER_NAME != 'localhost' && preg_match("/\./", SERVER_NAME))?SERVER_NAME:false;
         if ($this->debug) $this->logs[] = 'Session domain for JWT: '.$domain;
-        if (!defined('IS_API')) setcookie($cookie_name, $this->BASE->getKeyHash($jwt), array('expires'=>$exp, 'path'=>'/', 'domain'=>$domain, 'secure'=>$this->secure, 'httponly'=>$this->http_only, 'samesite'=>$this->samesite));
+        if (!defined('IS_API')) setcookie($cookie_name, Base::getKeyHash($jwt), array('expires'=>$exp, 'path'=>'/', 'domain'=>$domain, 'secure'=>$this->secure, 'httponly'=>$this->http_only, 'samesite'=>$this->samesite));
         if ($this->debug) $this->logs[] = "Set JWT: STOP";
         return $jwt;
     }
