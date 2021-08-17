@@ -3,7 +3,7 @@
  * Класс для работы с ключами JWT
  * @author Yuri Frantsevich (FYN)
  * Date: 13/08/2021
- * @version 1.0.1
+ * @version 1.0.2
  * @copyright 2021
  */
 
@@ -68,12 +68,6 @@ class JWT {
      * Отладочные логи
      */
     private $debug = false;
-
-    /**
-     * Класс базовых функций
-     * @var object
-     */
-    private $BASE = [];
 
     /**
      * JWT constructor.
