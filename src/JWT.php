@@ -3,7 +3,7 @@
  * Класс для работы с ключами JWT
  * @author Yuri Frantsevich (FYN)
  * Date: 13/08/2021
- * @version 1.0.2
+ * @version 1.0.3
  * @copyright 2021
  */
 
@@ -74,6 +74,7 @@ class JWT {
      */
     public function __construct() {
         if (!defined("SERVER_NAME")) define("SERVER_NAME", $_SERVER['SERVER_NAME']);
+        if (!session_id()) session_start();
     }
 
     /**
@@ -464,9 +465,10 @@ class JWT {
      * @param string $key - ключ шифрования
      * @param array $header - заголовки
      * @param string $cookie_name - имя куки
+     * @param bool $hash - сохранить в куки md5 хэш ключа
      * @return mixed
      */
-    public function setJWT ($data, $key, $header = array(), $cookie_name = '') {
+    public function setJWT ($data, $key, $header = array(), $cookie_name = '', $hash = false) {
         if ($this->debug) $this->logs[] = "Set JWT: START";
         if (is_object($data)) $data = (array) $data;
         if (!is_array($data)) {
@@ -487,7 +489,8 @@ class JWT {
         $jwt = static::createJWT($header, $data, $key);
         $domain = (SERVER_NAME != 'localhost' && preg_match("/\./", SERVER_NAME))?SERVER_NAME:false;
         if ($this->debug) $this->logs[] = 'Session domain for JWT: '.$domain;
-        if (!defined('IS_API')) setcookie($cookie_name, Base::getKeyHash($jwt), array('expires'=>$exp, 'path'=>'/', 'domain'=>$domain, 'secure'=>$this->secure, 'httponly'=>$this->http_only, 'samesite'=>$this->samesite));
+        if ($hash) setcookie($cookie_name, Base::getKeyHash($jwt), array('expires'=>$exp, 'path'=>'/', 'domain'=>$domain, 'secure'=>$this->secure, 'httponly'=>$this->http_only, 'samesite'=>$this->samesite));
+        else setcookie($cookie_name, $jwt, array('expires'=>$exp, 'path'=>'/', 'domain'=>$domain, 'secure'=>$this->secure, 'httponly'=>$this->http_only, 'samesite'=>$this->samesite));
         if ($this->debug) $this->logs[] = "Set JWT: STOP";
         return $jwt;
     }
