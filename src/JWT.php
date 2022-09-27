@@ -3,7 +3,7 @@
  * Класс для работы с ключами JWT
  * @author Yuri Frantsevich (FYN)
  * Date: 13/08/2021
- * @version 1.0.3
+ * @version 1.0.4
  * @copyright 2021
  */
 
@@ -315,7 +315,7 @@ class JWT {
         // Check if this token has expired.
         if (isset($payload->exp) && ($timestamp - $leeway) >= $payload->exp) {
             try {
-                throw new Exception('Expired token');
+                throw new Exception('Expired token. Cannot handle token after ' . date(DateTime::ISO8601, $payload->exp));
             }
             catch (Exception $e) {
                 $this->logs[] = 'Session decodeJWT Error: '.$e->getMessage();
