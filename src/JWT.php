@@ -3,7 +3,7 @@
  * Класс для работы с ключами JWT
  * @author Yuri Frantsevich (FYN)
  * Date: 13/08/2021
- * @version 1.0.4
+ * @version 1.0.5
  * @copyright 2021
  */
 
@@ -288,6 +288,7 @@ class JWT {
                 if ($this->debug) $this->logs[] = "Decode JWT: STOP";
                 $error['info'] = $e->getMessage();
                 $error['case'] = 'nbf';
+                $error['time'] = $payload->nbf;
                 $error = Base::ArrayToObj($error);
                 return $error;
             }
@@ -306,6 +307,7 @@ class JWT {
                 if ($this->debug) $this->logs[] = "Decode JWT: STOP";
                 $error['info'] = $e->getMessage();
                 $error['case'] = 'iat';
+                $error['time'] = $payload->iat;
                 $error = Base::ArrayToObj($error);
                 return $error;
             }
@@ -322,6 +324,7 @@ class JWT {
                 if ($this->debug) $this->logs[] = "Decode JWT: STOP";
                 $error['info'] = $e->getMessage();
                 $error['case'] = 'exp';
+                $error['time'] = $payload->exp;
                 $error = Base::ArrayToObj($error);
                 return $error;
             }
