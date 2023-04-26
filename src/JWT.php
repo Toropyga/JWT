@@ -3,7 +3,7 @@
  * Класс для работы с ключами JWT
  * @author Yuri Frantsevich (FYN)
  * Date: 13/08/2021
- * @version 1.0.6
+ * @version 1.0.7
  * @copyright 2021-2023
  */
 
@@ -534,17 +534,25 @@ class JWT {
      * Очистка ключей
      * @return bool
      */
-    public function clearJWT ($cookie_name = '') {
+    public function clearJWT ($cookie_name = 'token') {
         if ($this->debug) $this->logs[] = "Clear JWT: START";
         $domain = (SERVER_NAME != 'localhost' && preg_match("/\./", SERVER_NAME))?SERVER_NAME:false;
         if (!$cookie_name && $this->token_cookie_name) $cookie_name = $this->token_cookie_name;
         if (isset($_COOKIE[$cookie_name])) {
-            setcookie($cookie_name, '', (time()-1), '/', $domain, $this->secure, $this->http_only);
+            $param = array(
+                'expires'=>time()-1, 
+                'path'=>'/', 
+                'domain'=>$domain, 
+                'secure'=>$this->secure, 
+                'httponly'=>$this->http_only, 
+                'samesite'=>$this->samesite
+            );
+            setcookie($cookie_name, '', $param);
             unset($_COOKIE[$cookie_name]);
             // old version for BNB
-            if (isset($_COOKIE['refresh_token'])) setcookie('refresh_token', '', (time()-1), '/', $domain, $this->secure, $this->http_only);
-            if (isset($_COOKIE['API'])) setcookie('API', '', (time()-1), '/', $domain, $this->secure, $this->http_only);
-            if (isset($_COOKIE['API_R'])) setcookie('API_R', '', (time()-1), '/', $domain, $this->secure, $this->http_only);
+            if (isset($_COOKIE['refresh_token'])) setcookie('refresh_token', '', $param);
+            if (isset($_COOKIE['API'])) setcookie('API', '', $param);
+            if (isset($_COOKIE['API_R'])) setcookie('API_R', '', $param);
             unset($_COOKIE['refresh_token'], $_COOKIE['API'], $_COOKIE['API_R']);
             //
             if ($this->debug) $this->logs[] = "JWT deleted from cookie";
