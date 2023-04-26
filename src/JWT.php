@@ -3,8 +3,8 @@
  * Класс для работы с ключами JWT
  * @author Yuri Frantsevich (FYN)
  * Date: 13/08/2021
- * @version 1.0.5
- * @copyright 2021
+ * @version 1.0.6
+ * @copyright 2021-2023
  */
 
 namespace FYN;
@@ -534,17 +534,28 @@ class JWT {
      * Очистка ключей
      * @return bool
      */
-    public function clearJWT () {
+    public function clearJWT ($cookie_name = '') {
         if ($this->debug) $this->logs[] = "Clear JWT: START";
         $domain = (SERVER_NAME != 'localhost' && preg_match("/\./", SERVER_NAME))?SERVER_NAME:false;
-        setcookie('token', '', (time()-1), '/', $domain, $this->secure, $this->http_only);
-        if (isset($_COOKIE['refresh_token'])) setcookie('refresh_token', '', (time()-1), '/', $domain, $this->secure, $this->http_only);
-        if (isset($_COOKIE['API'])) setcookie('API', '', (time()-1), '/', $domain, $this->secure, $this->http_only);
-        if (isset($_COOKIE['API_R'])) setcookie('API_R', '', (time()-1), '/', $domain, $this->secure, $this->http_only);
-        unset($_COOKIE['token'], $_COOKIE['refresh_token']);
-        if ($this->debug) $this->logs[] = "JWT deleted from cookie";
-        if ($this->debug) $this->logs[] = "Clear JWT: STOP";
-        return true;
+        if (!$cookie_name && $this->token_cookie_name) $cookie_name = $this->token_cookie_name;
+        if (isset($_COOKIE[$cookie_name])) {
+            setcookie($cookie_name, '', (time()-1), '/', $domain, $this->secure, $this->http_only);
+            unset($_COOKIE[$cookie_name]);
+            // old version for BNB
+            if (isset($_COOKIE['refresh_token'])) setcookie('refresh_token', '', (time()-1), '/', $domain, $this->secure, $this->http_only);
+            if (isset($_COOKIE['API'])) setcookie('API', '', (time()-1), '/', $domain, $this->secure, $this->http_only);
+            if (isset($_COOKIE['API_R'])) setcookie('API_R', '', (time()-1), '/', $domain, $this->secure, $this->http_only);
+            unset($_COOKIE['refresh_token'], $_COOKIE['API'], $_COOKIE['API_R']);
+            //
+            if ($this->debug) $this->logs[] = "JWT deleted from cookie";
+            if ($this->debug) $this->logs[] = "Clear JWT: STOP";
+            return true;
+        }
+        else {
+            if ($this->debug) $this->logs[] = "Warning! JWT cookie not found";
+            if ($this->debug) $this->logs[] = "Clear JWT: STOP";
+            return false;
+        }
     }
 
     /**
