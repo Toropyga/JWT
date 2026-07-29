@@ -1,17 +1,17 @@
 <?php
 /**
  * Класс для работы с ключами JWT
- * @author Yuri Frantsevich (FYN)
+ * @author Yuri Frantsevich
  * Date: 13/08/2021
- * @version 1.0.7
- * @copyright 2021-2023
+ * @version 2.0.0
+ * @copyright 2021-2026
  */
 
-namespace FYN;
+namespace Toropyga;
 
 use DateTime;
 use Exception;
-use FYN\Base;
+use Toropyga\Base;
 
 class JWT {
 
