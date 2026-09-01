@@ -1,6 +1,6 @@
 <?php
 /**
- * Класс для работы с ключами JWT
+ * Class for working with JWT tokens
  * @author Yuri Frantsevich
  * Date: 13/08/2021
  * @version 2.0.1
@@ -16,109 +16,122 @@ use Toropyga\Base;
 class JWT {
 
     /**
-     * Имя сессии для токенов
+     * Session name for tokens
      * @var string
      */
     private $token_cookie_name = 'token';
 
     /**
-     * Время "жизни" простой (гостевой) сессии (сек.)
+     * Lifetime of a simple (guest) session (sec.)
      * @var int
      */
     private $session_live_time = 3600;
 
     /**
-     * Время "жизни" сохранённой сессии (сек.)
+     * Lifetime of a "remembered" session (sec.)
      * @var int
      */
     private $session_live_time_rem = 2592000;
 
     /**
-     * Параметр безопасности для COOKIE
+     * Security parameter for the COOKIE
      * @var bool
      */
     private $secure = true;
 
     /**
-     * Параметр безопасности для COOKIE
+     * Security parameter for the COOKIE
      * @var bool
      */
     private $http_only = true;
 
     /**
-     * Порядок кроссдоменной передачи куки
+     * Cross-domain cookie transmission policy
      *
      * @var string
      */
     private $samesite = 'lax';
 
     /**
-     * Логи
+     * Logs
      * @var array
      */
     private $logs = array();
 
     /**
-     * Имя файла в который сохраняется лог
+     * Name of the file the log is saved to
      * @var string
      */
     private $log_file = 'jwt.log';
 
     /**
-     * Отладочные логи
+     * Debug logging
      */
     private $debug = false;
 
     /**
-     * JWT constructor.
+     * Allowed signature algorithms and their corresponding hash_hmac() hash algorithms.
+     * Used as a whitelist — tokens with any other "alg" value are rejected.
+     * @var array
      */
-    public function __construct() {
+    private static $allowed_algs = array(
+        'HS256' => 'sha256',
+        'HS384' => 'sha384',
+        'HS512' => 'sha512',
+    );
+
+    /**
+     * JWT constructor.
+     * @param string $server_name - server name; if not set, taken from $_SERVER['SERVER_NAME']
+     */
+    public function __construct($server_name = '') {
+        if ($server_name) define("SERVER_NAME", $server_name);
         if (!defined("SERVER_NAME")) define("SERVER_NAME", $_SERVER['SERVER_NAME']);
         if (!session_id()) session_start();
     }
 
     /**
-     * Завершение работы
+     * Destructor
      */
     public function __destruct(){
     }
 
     /**
-     * Генерация JWT
+     * JWT generation
      *
      * URL: https://openid.net/developers/specs/
      * URL: https://openid.net/specs/openid-connect-core-1_0.html#IDToken
      *
-     * Например:
+     * Example:
      * $token = $this->createJWT(array('alg'=>'HS256', 'typ'=>'JWT'), array('iss'=>WWW_PATH, 'exp'=>1551857936, 'jti'=>1, 'user_name'=>'User', 'user_id'=>1), 'security_key_99');
      * header("Authorization: Bearer $token");
      *
-     * @param array $header - массив данных заголовка
-     *          Заголовки. Обязательный ключ здесь только один:
-     *              alg: алгоритм, используемый для подписи/шифрования (в случае не подписанного JWT используется значение «none»).
-     *          Необязательные ключи:
-     *              typ: тип токена (type). Используется в случае, когда токены смешиваются с другими объектами, имеющими JOSE заголовки. Должно иметь значение «JWT».
-     *              cty: тип содержимого (content type). Если в токене помимо зарегистрированных служебных ключей есть пользовательские, то данный ключ не должен присутствовать. В противном случае должно иметь значение «JWT»[2]
-     * @param array $user_data - массив пользовательских данных
-     *          Пользовательская информация (например, имя пользователя и уровень его доступа), а также могут быть использованы некоторые служебные ключи. Все они являются необязательными:
-     *              iss: чувствительная к регистру строка или URI, которая является уникальным идентификатором стороны, генерирующим токен (issuer).
-     *              sub: чувствительная к регистру строка или URI, которая является уникальным идентификатором стороны, о которой содержится информация в данном токене (subject). Значения с этим ключом должны быть уникальны в контексте стороны, генерирующей JWT.
-     *              aud: массив чувствительных к регистру строк или URI, являющийся списком получателей данного токена. Когда принимающая сторона получает JWT с данным ключом, она должна проверить наличие себя в получателях — иначе проигнорировать токен (audience).
-     *              exp: время в формате Unix Time, определяющее момент, когда токен станет не валидным (expiration).
-     *              nbf: в противоположность ключу exp, это время в формате Unix Time, определяющее момент, когда токен станет валидным (not before).
-     *              jti: строка, определяющая уникальный идентификатор данного токена (JWT ID)
-     * @param string $security - ключ шифрования
+     * @param array $header - header data array
+     *          Headers. Only one key is mandatory here:
+     *              alg: the algorithm used for signing/encryption (for an unsigned JWT the value "none" is used).
+     *          Optional keys:
+     *              typ: token type. Used when tokens are mixed with other objects that have JOSE headers. Should have the value "JWT".
+     *              cty: content type. If the token, besides the registered service keys, has custom ones, this key should not be present. Otherwise it should have the value "JWT"[2]
+     * @param array $user_data - array of user data
+     *          User information (e.g. username and access level), and some service keys may also be used. All of them are optional:
+     *              iss: a case-sensitive string or URI that is the unique identifier of the party generating the token (issuer).
+     *              sub: a case-sensitive string or URI that is the unique identifier of the party this token contains information about (subject). Values with this key must be unique within the context of the party generating the JWT.
+     *              aud: an array of case-sensitive strings or URIs listing the intended recipients of this token. When a receiving party gets a JWT with this key, it must check whether it is among the recipients — otherwise the token should be ignored (audience).
+     *              exp: Unix Time defining the moment the token becomes invalid (expiration).
+     *              nbf: opposite of the exp key, Unix Time defining the moment the token becomes valid (not before).
+     *              jti: a string defining the unique identifier of this token (JWT ID)
+     * @param string $security - encryption key
      * @return mixed
      */
     public function createJWT ($header = array(), $user_data = array(), $security = '') {
         if ($this->debug) $this->logs[] = "JWT Creator: START";
-        // ключи заголовка. 1 - обязательные, 0 - необязательные
+        // header keys. 1 - mandatory, 0 - optional
         $h_keys = array('alg' => 1, 'typ' => 0, 'cty' => 0);
-        // ключи пользовательских данных. 1 - обязательные, 0 - необязательные
+        // user data keys. 1 - mandatory, 0 - optional
         $b_keys = array('iss' => 0, 'sub' => 0, 'aud' => 0, 'exp' => 0, 'nbf' => 0, 'jti' => 0);
-        // указатель того, что проверка пройдена
+        // flag indicating the check has passed
         $go = 1;
-        // формируем заголовок
+        // build the header
         $clear = array();
         foreach ($h_keys as $key=>$ii) {
             if ($ii == 1 && (!isset($header[$key]) || !$header[$key])) {
@@ -132,7 +145,7 @@ class JWT {
             return false;
         }
         else $header = $clear;
-        // формируем пользовательские данные
+        // build the user data
         foreach ($b_keys as $key=>$ii) {
             if ($ii == 1 && (!isset($user_data[$key]) || !$user_data[$key])) {
                 if ($this->debug) $this->logs[] = 'JWT Creator Error: Mandatory key '.$key.' not passed';
@@ -143,27 +156,39 @@ class JWT {
             if (count($user_data) < 1) $this->logs[] = 'JWT Creator Error: No data!';
             return false;
         }
-        // результирующий массив
+        // the signing algorithm must be in the allowed list — reject any arbitrary/spoofed "alg"
+        if (!isset(static::$allowed_algs[$header['alg']])) {
+            $this->logs[] = 'JWT Creator Error: Unsupported alg "'.$header['alg'].'"';
+            if ($this->debug) $this->logs[] = "JWT Creator: STOP";
+            return false;
+        }
+        // the encryption key is mandatory. Creating an unsigned token is not allowed.
+        if (!is_string($security) || $security === '') {
+            $this->logs[] = 'JWT Creator Error: Security key is required, unsigned tokens are not allowed';
+            if ($this->debug) $this->logs[] = "JWT Creator: STOP";
+            return false;
+        }
+        // resulting array
         $output = array();
         $output[] = static::base64Encode(static::jsonEncode($header));
         $output[] = static::base64Encode(static::jsonEncode($user_data));
-        // формируем сигнатуру (подпись). Без ключа шифрования не имеет смысла
-        $signature = '';
-        if ($security) $signature = static::getSignature(implode('.', $output), $security);
-        $output[] = $signature;
-        // формируем ключ
+        // build the signature
+        $output[] = static::getSignature(implode('.', $output), $security, static::$allowed_algs[$header['alg']]);
+        // build the token
         $jwt = implode('.', $output);
-        if ($this->debug) $this->logs[] = "Creat JWT: ".$jwt;
+        // IMPORTANT: do not log the token itself or user data in plain form even in debug mode,
+        // to avoid writing sensitive data to the log file.
+        if ($this->debug) $this->logs[] = "JWT Creator: token generated, length=".static::safeStr_len($jwt);
         if ($this->debug) $this->logs[] = "JWT Creator: STOP";
         return $jwt;
     }
 
     /**
-     * Декодирование JWT
-     * @param string $jwt - JWT токен
-     * @param string $security - ключ шифрования
-     * @param null $timestamp - фиксированное время жизни токена, необязательный параметр. По умолчанию равен time()
-     * @param int $leeway - дополнительное время жизни токена для учёта разницы во времени.
+     * JWT decoding
+     * @param string $jwt - JWT token
+     * @param string $security - encryption key
+     * @param null $timestamp - fixed token lifetime timestamp, optional parameter. Defaults to time()
+     * @param int $leeway - additional token lifetime allowance to account for clock skew.
      *
      * URL: https://openid.net/developers/specs/
      * URL: https://openid.net/specs/openid-connect-core-1_0.html#IDToken
@@ -174,19 +199,18 @@ class JWT {
     public function decodeJWT ($jwt, $security = '', $timestamp = null, $leeway = 0) {
         if (is_array($jwt)) {
             if ($this->debug) $this->logs[] = "Decode JWT: ERROR";
-            if ($this->debug) $this->logs[] = "JWT is array: ".print_r($jwt, true);
+            if ($this->debug) $this->logs[] = "JWT is array, expected string";
             $error['info'] = 'JWT is array';
             $error['case'] = 'first check';
             $error = Base::ArrayToObj($error);
             return $error;
         }
         if ($this->debug) $this->logs[] = "Decode JWT: START";
-        if ($this->debug) $this->logs[] = "JWT: ".$jwt;
         $timestamp = is_null($timestamp) ? time() : $timestamp;
         $data = explode('.', $jwt);
         $error = array();
         $error['error'] = true;
-        // проверяем количество сегментов в токене
+        // check the number of segments in the token
         if (count($data) != 3) {
             try {
                 throw new Exception('Wrong number of segments');
@@ -201,8 +225,9 @@ class JWT {
             }
         }
         list($head_64, $body_64, $crypto_64) = $data;
-        // декодируем первый блок
-        if (null === ($header = static::jsonDecode(static::base64Decode($head_64)))){
+        // decode the first segment
+        $head_raw = static::base64Decode($head_64);
+        if ($head_raw === false || null === ($header = static::jsonDecode($head_raw))){
             try {
                 throw new Exception('Invalid header encoding');
             }
@@ -215,9 +240,10 @@ class JWT {
                 return $error;
             }
         }
-        if ($this->debug) $this->logs[] = "JWT Header: ".preg_replace("/\n/", '', print_r($header, true));
-        // декодируем второй блок
-        if (null === ($payload = static::jsonDecode(static::base64Decode($body_64)))) {
+        if ($this->debug) $this->logs[] = "JWT Header decoded, alg=".($header->alg ?? '(none)');
+        // decode the second segment
+        $body_raw = static::base64Decode($body_64);
+        if ($body_raw === false || null === ($payload = static::jsonDecode($body_raw))) {
             try {
                 throw new Exception('Invalid claims encoding');
             }
@@ -230,8 +256,8 @@ class JWT {
                 return $error;
             }
         }
-        if ($this->debug) $this->logs[] = "JWT Payload: ".preg_replace("/\n/", '', print_r($payload, true));
-        // декодируем сигнатуру
+        if ($this->debug) $this->logs[] = "JWT Payload decoded (contents not logged for privacy)";
+        // decode the signature
         if (false === ($signature = static::base64Decode($crypto_64))) {
             try {
                 throw new Exception('Invalid signature encoding');
@@ -245,11 +271,13 @@ class JWT {
                 return $error;
             }
         }
-        if ($this->debug) $this->logs[] = "JWT Signature: ".preg_replace("/\n/", '', print_r($signature, true));
-        // проверяем наличие информации об алгоритме шифрования
-        if (empty($header->alg)) {
+        if ($this->debug) $this->logs[] = "JWT Signature decoded, length=".static::safeStr_len($signature);
+        // check that the encryption algorithm info is present and is in the whitelist.
+        // This prevents an "alg confusion" attack — the token cannot dictate to the server
+        // which algorithm to verify itself with, unless that algorithm is explicitly allowed.
+        if (empty($header->alg) || !isset(static::$allowed_algs[$header->alg])) {
             try {
-                throw new Exception('Empty algorithm');
+                throw new Exception('Empty or unsupported algorithm');
             }
             catch (Exception $e) {
                 $this->logs[] = 'Session decodeJWT Error: '.$e->getMessage();
@@ -260,8 +288,17 @@ class JWT {
                 return $error;
             }
         }
-        // проверяем сигнатуру. Check the signature
-        if (!static::verify("$head_64.$body_64", $signature, $security, 'SHA256')) {
+        // the encryption key is mandatory for signature verification
+        if (!is_string($security) || $security === '') {
+            $this->logs[] = 'Session decodeJWT Error: Security key is required';
+            if ($this->debug) $this->logs[] = "Decode JWT: STOP";
+            $error['info'] = 'Security key is required';
+            $error['case'] = 'security';
+            $error = Base::ArrayToObj($error);
+            return $error;
+        }
+        // verify the signature using the hash algorithm that matches header->alg (not a hardcoded one)
+        if (!static::verify("$head_64.$body_64", $signature, $security, static::$allowed_algs[$header->alg])) {
             try {
                 throw new Exception('Signature verification failed');
             }
@@ -275,8 +312,8 @@ class JWT {
             }
         }
         if ($this->debug) $this->logs[] = "JWT signature verified";
-        // проверяем параметр nbf
-        // nbf: время в формате Unix Time, определяющее момент, когда токен станет валидным (not before).
+        // check the nbf claim
+        // nbf: Unix Time defining the moment the token becomes valid (not before).
         // Check if the nbf if it is defined. This is the time that the
         // token can actually be used. If it's not yet that time, abort.
         if (isset($payload->nbf) && $payload->nbf > ($timestamp + $leeway)) {
@@ -293,8 +330,8 @@ class JWT {
                 return $error;
             }
         }
-        // проверяем параметр iat
-        // iat: время в формате Unix Time, определяющее момент выпуска токена.
+        // check the iat claim
+        // iat: Unix Time defining the moment the token was issued.
         // Check that this token has been created before 'now'. This prevents
         // using tokens that have been created for later use (and haven't
         // correctly used the nbf claim).
@@ -312,8 +349,8 @@ class JWT {
                 return $error;
             }
         }
-        // проверяем параметр exp
-        // exp: время в формате Unix Time, определяющее момент окончания срока действия токена.
+        // check the exp claim
+        // exp: Unix Time defining the moment the token expires.
         // Check if this token has expired.
         if (isset($payload->exp) && ($timestamp - $leeway) >= $payload->exp) {
             try {
@@ -334,35 +371,38 @@ class JWT {
     }
 
     /**
-     * Получение данных из шапки и тела токена независимо от сигнатуры
-     * Используем, например, для получения ID скомпроментированного клиента
-     * @param $jwt - токен
+     * Retrieve data from the token header and body regardless of the signature.
+     * Used, for example, to obtain the ID of a compromised client.
+     * @param $jwt - the token
      * @return array
      */
     public function getJWTData ($jwt) {
         if ($this->debug) $this->logs[] = "Get JWT Data: START";
-        if ($this->debug) $this->logs[] = "JWT: ".$jwt;
         $data = explode('.', $jwt);
         $result = array();
         if (count($data) > 2) {
             @list($head_64, $body_64, $crypto_64) = $data;
             unset($crypto_64);
-            $header = static::jsonDecode(static::base64Decode($head_64));
-            $payload = static::jsonDecode(static::base64Decode($body_64));
-            if ($header->alg) $result['header'] = (array) $header;
-            $result['payload'] = Base::ObjToArray($payload);
+            $head_raw = static::base64Decode($head_64);
+            $body_raw = static::base64Decode($body_64);
+            $header = ($head_raw === false) ? null : static::jsonDecode($head_raw);
+            $payload = ($body_raw === false) ? null : static::jsonDecode($body_raw);
+            if (is_object($header) && !empty($header->alg)) $result['header'] = (array) $header;
+            if ($payload !== null) $result['payload'] = Base::ObjToArray($payload);
         }
-        if ($this->debug) $this->logs[] = "JWT Data: ".preg_replace("/\n/", '', print_r($result, true));
+        // Do not log the raw token or the payload/header contents even in debug mode —
+        // this may be sensitive user information.
+        if ($this->debug) $this->logs[] = "Get JWT Data: parsed=".(count($result) ? 'yes' : 'no');
         if ($this->debug) $this->logs[] = "Get JWT Data: STOP";
         return $result;
     }
 
     /**
-     * Проверка подписи
-     * @param string $msg - передаваемые данные (заголовок и тело ключа)
-     * @param string $signature - подпись
-     * @param string $key - ключ шифрования
-     * @param string $alg - алгоритм шифрования
+     * Signature verification
+     * @param string $msg - the data being transmitted (header and body of the token)
+     * @param string $signature - the signature
+     * @param string $key - encryption key
+     * @param string $alg - hash algorithm
      * @return bool
      */
     private function verify ($msg, $signature, $key, $alg = 'SHA256') {
@@ -381,9 +421,9 @@ class JWT {
     }
 
     /**
-     * Декодирование из JSON
-     * @param string $input - json строка
-     * @param boolean $assoc - возвращать ассоциативный массив или нет
+     * JSON decoding
+     * @param string $input - json string
+     * @param boolean $assoc - whether to return an associative array or not
      * @return mixed
      */
     public static function jsonDecode($input, $assoc = false) {
@@ -409,8 +449,8 @@ class JWT {
     }
 
     /**
-     * Кодирование в JSON
-     * @param array $input - массив данных
+     * JSON encoding
+     * @param array $input - data array
      * @return false|string
      */
     public static function jsonEncode($input) {
@@ -419,8 +459,8 @@ class JWT {
     }
 
     /**
-     * Кодирование в формат URLBase64
-     * @param string $input - строка данных
+     * Encoding to URLBase64 format
+     * @param string $input - data string
      * @return mixed
      */
     public static function base64Encode ($input) {
@@ -428,8 +468,8 @@ class JWT {
     }
 
     /**
-     * Декодирование из формата URLBase64
-     * @param string $input - строка в формате Base64 URL
+     * Decoding from URLBase64 format
+     * @param string $input - string in Base64 URL format
      * @return bool|string
      */
     public static function base64Decode ($input) {
@@ -442,19 +482,19 @@ class JWT {
     }
 
     /**
-     * Генерация подписи к токену JWT
-     * @param string $input - строка для шифрования
-     * @param string $key - ключ шифрования
-     * @param string $alg - алгоритм шифрования
+     * Generate the signature for a JWT token
+     * @param string $input - the string to sign
+     * @param string $key - encryption key
+     * @param string $alg - hash algorithm
      * @return mixed
      */
-    public static function getSignature ($input, $key, $alg = 'SHA256') {
+    public static function getSignature ($input, $key, $alg = 'sha256') {
         return static::base64Encode(hash_hmac($alg, $input, $key, true));
     }
 
     /**
-     * Высчитываем длину строки
-     * @param string $str - строка
+     * Calculate string length
+     * @param string $str - the string
      * @return int
      */
     private static function safeStr_len($str) {
@@ -463,12 +503,12 @@ class JWT {
     }
 
     /**
-     * Сохранение JWT в куки браузера
-     * @param array $data - данные пользователя
-     * @param string $key - ключ шифрования
-     * @param array $header - заголовки
-     * @param string $cookie_name - имя куки
-     * @param bool $hash - сохранить в куки md5 хэш ключа
+     * Save the JWT in a browser cookie
+     * @param array $data - user data
+     * @param string $key - encryption key
+     * @param array $header - headers
+     * @param string $cookie_name - cookie name
+     * @param bool $hash - store an md5 hash of the key in the cookie
      * @return mixed
      */
     public function setJWT ($data, $key, $header = array(), $cookie_name = '', $hash = false) {
@@ -488,8 +528,24 @@ class JWT {
             $exp = time()+$live_time;
         }
         else $exp = $data['exp'];
-        if ($key === null) $key = $header['alg'];
+        // The encryption key is mandatory and must be provided explicitly by the calling code.
+        // Previously, when $key === null, the value of $header['alg'] (e.g. "HS256") was used
+        // instead, which turned the secret into a predictable public string — this was a
+        // security vulnerability.
+        if (!is_string($key) || $key === '') {
+            $this->logs[] = "Set JWT Error: Security key is required";
+            if ($this->debug) $this->logs[] = "Set JWT: STOP";
+            return false;
+        }
         $jwt = static::createJWT($header, $data, $key);
+        if ($jwt === false) {
+            $this->logs[] = "Set JWT Error: token generation failed";
+            if ($this->debug) $this->logs[] = "Set JWT: STOP";
+            return false;
+        }
+        // The cookie domain should ideally be set explicitly via the application configuration
+        // rather than relying on SERVER_NAME (which may depend on the Host header, potentially
+        // controllable by the client if the web server/vhost is misconfigured).
         $domain = (SERVER_NAME != 'localhost' && preg_match("/\./", SERVER_NAME))?SERVER_NAME:false;
         if ($this->debug) $this->logs[] = 'Session domain for JWT: '.$domain;
         if ($hash) setcookie($cookie_name, Base::getKeyHash($jwt), array('expires'=>$exp, 'path'=>'/', 'domain'=>$domain, 'secure'=>$this->secure, 'httponly'=>$this->http_only, 'samesite'=>$this->samesite));
@@ -499,18 +555,18 @@ class JWT {
     }
 
     /**
-     * Проверка токена JWT, возврат данных
-     * @param string $jwt - JWT строка
-     * @param string $security - ключ шифрования
-     * @param null $timestamp - фиксированное время жизни токена, необязательный параметр. По умолчанию равен time()
-     * @param int $leeway - дополнительное время жизни токена для учёта разницы во времени.
+     * Verify the JWT token and return the data
+     * @param string $jwt - JWT string
+     * @param string $security - encryption key
+     * @param null $timestamp - fixed token lifetime timestamp, optional parameter. Defaults to time()
+     * @param int $leeway - additional token lifetime allowance to account for clock skew.
      * @return bool|object
      * @throws Exception
      */
     public function checkJWT ($jwt, $security = '', $timestamp = null, $leeway = 0) {
         if ($this->debug) $this->logs[] = "Check JWT: START";
         $data = static::decodeJWT($jwt, $security, $timestamp, $leeway);
-        /* ToDo проверка
+        /* ToDo check
         if (!isset($data->error) || !$data->error) {
             if ($data && isset($data->exp)) {
                 $name = $this->token_cookie_name;
@@ -525,13 +581,13 @@ class JWT {
             if (isset($data->nbf) && $data->nbf > time()) $data = false;
         }
         */
-        if ($this->debug) $this->logs[] = "Check JWT return Data: ".preg_replace("/\n/", '', print_r($data, true));
+        if ($this->debug) $this->logs[] = "Check JWT: data returned (contents not logged for privacy), is_error=".(isset($data->error) && $data->error ? 'true' : 'false');
         if ($this->debug) $this->logs[] = "Check JWT: STOP";
         return $data;
     }
 
     /**
-     * Очистка ключей
+     * Clear the keys
      * @return bool
      */
     public function clearJWT ($cookie_name = 'token') {
@@ -567,7 +623,7 @@ class JWT {
     }
 
     /**
-     * Возвращает логи
+     * Returns the logs
      * @return array
      */
     public function getLogs () {
