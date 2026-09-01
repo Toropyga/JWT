@@ -2,7 +2,7 @@
 A lightweight PHP class for creating, verifying, and managing JSON Web Tokens (JWT), including optional storage in browser cookies.
 
 ![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)
-![Version](https://img.shields.io/badge/version-v2.1.1-blue.svg)
+![Version](https://img.shields.io/badge/version-v2.1.2-blue.svg)
 ![PHP](https://img.shields.io/badge/php-v7_--_v8-blueviolet.svg)
 
 - **Namespace:** `Toropyga`
@@ -22,13 +22,13 @@ A lightweight PHP class for creating, verifying, and managing JSON Web Tokens (J
 - [Quick start](#Quick-start)
 - [Constructor](#Constructor)
 - [Public API](#Public-API)
-  - [`createJWT()`](#createjwtarray-header-array-user_data-string-security-stringfalse)
-  - [`decodeJWT()`](#decodejwtstring-jwt-string-security-int-timestamp-null-int-leeway-0-object)
-  - [`checkJWT()`](#checkjwtstring-jwt-string-security-int-timestamp-null-int-leeway-0-object)
-  - [`getJWTData()`](#getjwtdatastring-jwt-array)
-  - [`setJWT()`](#setjwtarrayobject-data-string-key-array-header-string-cookie_name-bool-hash-false-stringfalse)
-  - [`clearJWT()`](#clearjwtstring-cookie_name-token-bool)
-  - [`getLogs()`](#getlogs-array)
+  - [`createJWT()`](#createjwt)
+  - [`decodeJWT()`](#decodeJWT)
+  - [`checkJWT()`](#checkjwt)
+  - [`getJWTData()`](#getjwtdata)
+  - [`setJWT()`](#setjwt)
+  - [`clearJWT()`](#clearjwt)
+  - [`getLogs()`](#getlogs)
 - [Static helper methods](#Static-helper-methods)
 - [Supported algorithms](#Supported-algorithms)
 - [Security considerations](#Security-considerations)
@@ -121,7 +121,8 @@ $jwt = new JWT('example.com');
 
 ## Public API
 
-### `createJWT(array $header, array $user_data, string $security): string|false`
+### createJWT()
+`createJWT(array $header, array $user_data, string $security): string|false`
 
 Builds and signs a JWT.
 
@@ -149,7 +150,8 @@ $token = $jwt->createJWT(
 
 ---
 
-### `decodeJWT(string $jwt, string $security, ?int $timestamp = null, int $leeway = 0): object`
+### decodeJWT()
+`decodeJWT(string $jwt, string $security, ?int $timestamp = null, int $leeway = 0): object`
 
 Verifies a JWT's structure, signature, and standard time-based claims, then returns its payload.
 
@@ -186,13 +188,15 @@ if (!empty($data->error)) {
 
 ---
 
-### `checkJWT(string $jwt, string $security = '', ?int $timestamp = null, int $leeway = 0): object`
+### checkJWT()
+`checkJWT(string $jwt, string $security = '', ?int $timestamp = null, int $leeway = 0): object`
 
 Thin wrapper around `decodeJWT()`. Intended as the extension point for automatic token refresh logic (e.g. re-issuing a token that is close to expiry) — this logic is currently present only as a commented-out placeholder in the source and is **not implemented**. As it stands, `checkJWT()` behaves identically to `decodeJWT()`.
 
 ---
 
-### `getJWTData(string $jwt): array`
+### getJWTData()
+`getJWTData(string $jwt): array`
 
 Extracts the header and payload of a JWT **without verifying the signature**. Use this only for diagnostics — e.g. identifying the subject of a token that failed verification — never as a substitute for `decodeJWT()` when making authorization decisions.
 
@@ -209,7 +213,8 @@ Returns an empty array if the token is malformed.
 
 ---
 
-### `setJWT(array|object $data, string $key, array $header = [], string $cookie_name = '', bool $hash = false): string|false`
+### setJWT()
+`setJWT(array|object $data, string $key, array $header = [], string $cookie_name = '', bool $hash = false): string|false`
 
 Creates a JWT via `createJWT()` and stores it in an HTTP-only cookie.
 
@@ -235,7 +240,8 @@ $jwt->setJWT(['user_id' => 1, 'user_name' => 'John'], $secret);
 
 ---
 
-### `clearJWT(string $cookie_name = 'token'): bool`
+### clearJWT()
+`clearJWT(string $cookie_name = 'token'): bool`
 
 Expires the token cookie (and a few legacy-named cookies: `refresh_token`, `API`, `API_R`, kept for backward compatibility with older integrations). Returns `true` if a cookie was found and cleared, `false` otherwise.
 
@@ -245,7 +251,8 @@ $jwt->clearJWT();
 
 ---
 
-### `getLogs(): array`
+### getLogs()
+`getLogs(): array`
 
 Returns internal debug logs collected during the last operations, along with the configured log file name.
 

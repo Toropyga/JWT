@@ -8,7 +8,7 @@ PHP-класс для создания, проверки и управления
 
 - **Пространство имён:** `Toropyga`
 - **Класс:** `JWT`
-- **Версия:** 2.1.1
+- **Версия:** 2.1.2
 - **Зависимости:** `Toropyga\Base` (используется для конвертации массив/объект и метода `getKeyHash()`)
 - **PHP:** 7.x / 8.x
 
@@ -23,13 +23,13 @@ PHP-класс для создания, проверки и управления
 - [Быстрый старт](#быстрый-старт)
 - [Конструктор](#конструктор)
 - [Публичное API](#публичное-api)
-  - [`createJWT()`](#createjwtarray-header-array-user_data-string-security-stringfalse)
-  - [`decodeJWT()`](#decodejwtstring-jwt-string-security-int-timestamp-null-int-leeway-0-object)
-  - [`checkJWT()`](#checkjwtstring-jwt-string-security-int-timestamp-null-int-leeway-0-object)
-  - [`getJWTData()`](#getjwtdatastring-jwt-array)
-  - [`setJWT()`](#setjwtarrayobject-data-string-key-array-header-string-cookie_name-bool-hash-false-stringfalse)
-  - [`clearJWT()`](#clearjwtstring-cookie_name-token-bool)
-  - [`getLogs()`](#getlogs-array)
+  - [`createJWT()`](#createjwt)
+  - [`decodeJWT()`](#decodeJWT)
+  - [`checkJWT()`](#checkjwt)
+  - [`getJWTData()`](#getjwtdata)
+  - [`setJWT()`](#setjwt)
+  - [`clearJWT()`](#clearjwt)
+  - [`getLogs()`](#getlogs)
 - [Статические вспомогательные методы](#статические-вспомогательные-методы)
 - [Поддерживаемые алгоритмы](#поддерживаемые-алгоритмы)
 - [Рекомендации по безопасности](#рекомендации-по-безопасности)
@@ -122,7 +122,8 @@ $jwt = new JWT('example.com');
 
 ## Публичное API
 
-### `createJWT(array $header, array $user_data, string $security): string|false`
+### createJWT()
+`createJWT(array $header, array $user_data, string $security): string|false`
 
 Формирует и подписывает JWT.
 
@@ -150,7 +151,8 @@ $token = $jwt->createJWT(
 
 ---
 
-### `decodeJWT(string $jwt, string $security, ?int $timestamp = null, int $leeway = 0): object`
+### decodeJWT()
+`decodeJWT(string $jwt, string $security, ?int $timestamp = null, int $leeway = 0): object`
 
 Проверяет структуру, подпись и стандартные временные claim'ы JWT, затем возвращает его payload.
 
@@ -187,13 +189,15 @@ if (!empty($data->error)) {
 
 ---
 
-### `checkJWT(string $jwt, string $security = '', ?int $timestamp = null, int $leeway = 0): object`
+### checkJWT()
+`checkJWT(string $jwt, string $security = '', ?int $timestamp = null, int $leeway = 0): object`
 
 Тонкая обёртка над `decodeJWT()`. Задумывалась как точка расширения для логики автоматического обновления токена (например, перевыпуск токена при приближении срока истечения) — эта логика на данный момент присутствует в исходном коде только как закомментированная заготовка и **не реализована**. В текущем виде `checkJWT()` ведёт себя идентично `decodeJWT()`.
 
 ---
 
-### `getJWTData(string $jwt): array`
+### getJWTData()
+`getJWTData(string $jwt): array`
 
 Извлекает заголовок и payload JWT **без проверки подписи**. Используйте только для диагностики — например, чтобы определить субъект токена, не прошедшего верификацию — но никогда как замену `decodeJWT()` при принятии решений об авторизации.
 
@@ -210,7 +214,8 @@ if (!empty($data->error)) {
 
 ---
 
-### `setJWT(array|object $data, string $key, array $header = [], string $cookie_name = '', bool $hash = false): string|false`
+### setJWT()
+`setJWT(array|object $data, string $key, array $header = [], string $cookie_name = '', bool $hash = false): string|false`
 
 Создаёт JWT через `createJWT()` и сохраняет его в HTTP-only куки.
 
@@ -236,7 +241,8 @@ $jwt->setJWT(['user_id' => 1, 'user_name' => 'John'], $secret);
 
 ---
 
-### `clearJWT(string $cookie_name = 'token'): bool`
+### clearJWT()
+`clearJWT(string $cookie_name = 'token'): bool`
 
 Удаляет (обнуляет срок действия) куки с токеном, а также несколько устаревших куки, оставленных для обратной совместимости со старыми интеграциями: `refresh_token`, `API`, `API_R`. Возвращает `true`, если куки была найдена и очищена, иначе `false`.
 
@@ -246,7 +252,8 @@ $jwt->clearJWT();
 
 ---
 
-### `getLogs(): array`
+### getLogs()
+`getLogs(): array`
 
 Возвращает внутренние debug-логи, собранные во время последних операций, вместе с именем настроенного лог-файла.
 
