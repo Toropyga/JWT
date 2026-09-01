@@ -8,11 +8,32 @@ PHP-класс для создания, проверки и управления
 
 - **Пространство имён:** `Toropyga`
 - **Класс:** `JWT`
-- **Версия:** 2.1.0
+- **Версия:** 2.0.1
 - **Зависимости:** `Toropyga\Base` (используется для конвертации массив/объект и метода `getKeyHash()`)
 - **PHP:** 7.x / 8.x
 
 > Этот README описывает защищённую версию класса: неподписанные токены отклоняются, алгоритм подписи проверяется по белому списку, а чувствительные данные (токены, payload) никогда не пишутся в логи, даже в debug-режиме.
+
+---
+
+## Содержание
+
+- [Возможности](#возможности)
+- [Установка](#установка)
+- [Быстрый старт](#быстрый-старт)
+- [Конструктор](#конструктор)
+- [Публичное API](#публичное-api)
+  - [`createJWT()`](#createjwtarray-header-array-user_data-string-security-stringfalse)
+  - [`decodeJWT()`](#decodejwtstring-jwt-string-security-int-timestamp-null-int-leeway-0-object)
+  - [`checkJWT()`](#checkjwtstring-jwt-string-security-int-timestamp-null-int-leeway-0-object)
+  - [`getJWTData()`](#getjwtdatastring-jwt-array)
+  - [`setJWT()`](#setjwtarrayobject-data-string-key-array-header-string-cookie_name-bool-hash-false-stringfalse)
+  - [`clearJWT()`](#clearjwtstring-cookie_name-token-bool)
+  - [`getLogs()`](#getlogs-array)
+- [Статические вспомогательные методы](#статические-вспомогательные-методы)
+- [Поддерживаемые алгоритмы](#поддерживаемые-алгоритмы)
+- [Рекомендации по безопасности](#рекомендации-по-безопасности)
+- [Справочник по обработке ошибок](#справочник-по-обработке-ошибок)
 
 ---
 
@@ -296,4 +317,3 @@ $jwt->clearJWT();
 | `exp` | Срок действия токена истёк. |
 
 ---
-

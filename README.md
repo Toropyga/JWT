@@ -15,6 +15,27 @@ A lightweight PHP class for creating, verifying, and managing JSON Web Tokens (J
 
 ---
 
+## Content
+
+- [Features](#Features)
+- [Installation](#Installation)
+- [Quick start](#Quick-start)
+- [Constructor](#Constructor)
+- [Public API](#Public-API)
+  - [`createJWT()`](#createjwtarray-header-array-user_data-string-security-stringfalse)
+  - [`decodeJWT()`](#decodejwtstring-jwt-string-security-int-timestamp-null-int-leeway-0-object)
+  - [`checkJWT()`](#checkjwtstring-jwt-string-security-int-timestamp-null-int-leeway-0-object)
+  - [`getJWTData()`](#getjwtdatastring-jwt-array)
+  - [`setJWT()`](#setjwtarrayobject-data-string-key-array-header-string-cookie_name-bool-hash-false-stringfalse)
+  - [`clearJWT()`](#clearjwtstring-cookie_name-token-bool)
+  - [`getLogs()`](#getlogs-array)
+- [Static helper methods](#Static-helper-methods)
+- [Supported algorithms](#Supported-algorithms)
+- [Security considerations](#Security-considerations)
+- [Error handling reference](#Error-handling-reference)
+
+---
+
 ## Features
 
 - Create and verify JWTs signed with HMAC (`HS256`, `HS384`, `HS512`).
