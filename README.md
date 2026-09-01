@@ -7,7 +7,7 @@ A lightweight PHP class for creating, verifying, and managing JSON Web Tokens (J
 
 - **Namespace:** `Toropyga`
 - **Class:** `JWT`
-- **Version:** 2.1.0
+- **Version:** 2.1.1
 - **Dependencies:** `Toropyga\Base` (used for array/object conversion helpers and `getKeyHash()`)
 - **PHP:** 7.x / 8.x
 

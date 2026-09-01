@@ -3,7 +3,7 @@
  * Class for working with JWT tokens
  * @author Yuri Frantsevich
  * Date: 13/08/2021
- * @version 2.1.0
+ * @version 2.1.1
  * @copyright 2021-2026
  */
 
